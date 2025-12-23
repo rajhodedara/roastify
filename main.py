@@ -99,21 +99,31 @@ async def callback(
         # --------------------------------------------------
 
         # Top tracks
-        top_tracks_data = sp.current_user_top_tracks(
-            limit=10, time_range="medium_term"
-        )
-        tracks = top_tracks_data["items"]
+        # Top tracks
+top_tracks_data = sp.current_user_top_tracks(
+    limit=10, time_range="medium_term"
+)
+tracks = top_tracks_data.get("items", [])
 
-        # Top artists (with images)
-        artist_ids = list({t["artists"][0]["id"] for t in tracks})
-        artists_data = sp.artists(artist_ids)["artists"]
+# Artist IDs (safe)
+artist_ids = list({
+    t["artists"][0]["id"]
+    for t in tracks
+    if t.get("artists")
+})
 
-        top_artists = []
-        for artist in artists_data[:5]:
-            top_artists.append({
-                "name": artist["name"],
-                "image": artist["images"][0]["url"] if artist["images"] else None,
-            })
+artists_data = []
+if artist_ids:
+    artists_data = sp.artists(artist_ids).get("artists", [])
+
+top_artists = []
+for artist in artists_data[:5]:
+    top_artists.append({
+        "name": artist["name"],
+        "image": artist["images"][0]["url"]
+        if artist.get("images") else None,
+    })
+
 
         # Genres
         all_genres = []
@@ -198,3 +208,4 @@ if __name__ == "__main__":
         port=8000,
         reload=True,
     )
+
