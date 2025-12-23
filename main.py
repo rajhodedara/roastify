@@ -17,6 +17,11 @@ from spotipy.oauth2 import SpotifyOAuth
 # --------------------------------------------------
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173"  # fallback for local dev
+)
+
 
 # AI roast logic
 from roaster import generate_spotify_roast
@@ -162,7 +167,7 @@ async def callback(
 
         # Redirect to frontend
         return RedirectResponse(
-            url=f"http://localhost:5173/result?rid={roast_id}"
+            url=f"{FRONTEND_URL}/result?rid={roast_id}"
         )
 
     except Exception as e:
