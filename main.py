@@ -87,23 +87,18 @@ async def callback(
         return {"error": "No authorization code provided"}
 
     try:
-        # --------------------------------------------------
-        # Auth
-        # --------------------------------------------------
+        # ---------------- AUTH ----------------
         token_info = sp_oauth.get_access_token(code, as_dict=True)
         sp = spotipy.Spotify(auth=token_info["access_token"])
 
-        # --------------------------------------------------
-        # Top tracks
-        # --------------------------------------------------
+        # ---------------- TOP TRACKS ----------------
         top_tracks_data = sp.current_user_top_tracks(
-            limit=10, time_range="medium_term"
+            limit=10,
+            time_range="medium_term"
         )
         tracks = top_tracks_data.get("items", [])
 
-        # --------------------------------------------------
-        # Artists (safe)
-        # --------------------------------------------------
+        # ---------------- ARTISTS ----------------
         artist_ids = list({
             t["artists"][0]["id"]
             for t in tracks
@@ -114,31 +109,26 @@ async def callback(
         if artist_ids:
             artists_data = sp.artists(artist_ids).get("artists", [])
 
-        top_artists = [
-            {
+        top_artists = []
+        for artist in artists_data[:5]:
+            top_artists.append({
                 "name": artist["name"],
                 "image": artist["images"][0]["url"]
                 if artist.get("images") else None,
-            }
-            for artist in artists_data[:5]
-        ]
+            })
 
-        # --------------------------------------------------
-        # Genres
-        # --------------------------------------------------
+        # ---------------- GENRES ----------------
         all_genres = []
         for artist in artists_data:
             all_genres.extend(artist.get("genres", []))
         unique_genres = list(dict.fromkeys(all_genres))[:5]
 
-        # --------------------------------------------------
-        # Recently played
-        # --------------------------------------------------
+        # ---------------- RECENTLY PLAYED ----------------
         recent_data = sp.current_user_recently_played(limit=5)
         recent_tracks = []
 
-        for r in recent_data.get("items", []):
-            track = r.get("track")
+        for item in recent_data.get("items", []):
+            track = item.get("track")
             if track:
                 recent_tracks.append({
                     "name": track["name"],
@@ -147,9 +137,7 @@ async def callback(
                     else None,
                 })
 
-        # --------------------------------------------------
-        # Library
-        # --------------------------------------------------
+        # ---------------- LIBRARY ----------------
         library_data = sp.current_user_saved_tracks(limit=1)
         total_saved = library_data.get("total", 0)
 
@@ -160,9 +148,7 @@ async def callback(
             "total_saved": total_saved,
         }
 
-        # --------------------------------------------------
-        # Roast
-        # --------------------------------------------------
+        # ---------------- AI ROAST ----------------
         roast_text = generate_spotify_roast(stats)
 
         roast_id = str(uuid.uuid4())
@@ -194,4 +180,9 @@ async def get_roast(roast_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(
+        app,
+        host="127.0.0.1",
+        port=8000,
+        reload=True,
+    )
