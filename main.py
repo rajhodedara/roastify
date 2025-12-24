@@ -1,6 +1,7 @@
 import os
-import uuid
+import json
 from typing import Optional
+from urllib.parse import quote
 
 from fastapi import FastAPI, Query
 from fastapi.responses import RedirectResponse
@@ -56,12 +57,6 @@ sp_oauth = SpotifyOAuth(
 )
 
 # --------------------------------------------------
-# Temporary in-memory store
-# --------------------------------------------------
-
-ROAST_STORE: dict[str, dict] = {}
-
-# --------------------------------------------------
 # Routes
 # --------------------------------------------------
 
@@ -109,13 +104,14 @@ async def callback(
         if artist_ids:
             artists_data = sp.artists(artist_ids).get("artists", [])
 
-        top_artists = []
-        for artist in artists_data[:5]:
-            top_artists.append({
+        top_artists = [
+            {
                 "name": artist["name"],
                 "image": artist["images"][0]["url"]
                 if artist.get("images") else None,
-            })
+            }
+            for artist in artists_data[:5]
+        ]
 
         # ---------------- GENRES ----------------
         all_genres = []
@@ -151,27 +147,21 @@ async def callback(
         # ---------------- AI ROAST ----------------
         roast_text = generate_spotify_roast(stats)
 
-        roast_id = str(uuid.uuid4())
-        ROAST_STORE[roast_id] = {
+        # ---------------- REDIRECT WITH DATA ----------------
+        payload = {
             "roast": roast_text,
             "stats": stats,
         }
 
+        encoded = quote(json.dumps(payload))
+
         return RedirectResponse(
-            url=f"{FRONTEND_URL}/result?rid={roast_id}"
+            url=f"{FRONTEND_URL}/result?data={encoded}"
         )
 
     except Exception as e:
         print("Callback error:", e)
         return {"error": "Something went wrong while generating the roast"}
-
-
-@app.get("/api/roast/{roast_id}")
-async def get_roast(roast_id: str):
-    data = ROAST_STORE.get(roast_id)
-    if not data:
-        return {"error": "Roast not found or expired"}
-    return data
 
 
 # --------------------------------------------------
