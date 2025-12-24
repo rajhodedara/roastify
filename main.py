@@ -47,6 +47,8 @@ sp_oauth = SpotifyOAuth(
     client_secret=os.getenv("SPOTIPY_CLIENT_SECRET"),
     redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI"),
     scope="user-top-read user-read-recently-played user-library-read",
+    cache_path=None,   
+    show_dialog=True,
 )
 
 # --------------------------------------------------
@@ -181,3 +183,4 @@ if __name__ == "__main__":
         port=8000,
         reload=True,
     )
+
